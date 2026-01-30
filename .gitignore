@@ -1,0 +1,19 @@
+# .NET
+bin/
+obj/
+
+# Node
+node_modules/
+.next/
+
+# Environment
+.env
+.env.local
+.env.production
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
