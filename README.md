@@ -81,4 +81,5 @@ Frontend runs at: `http://localhost:3000`
 
 - Backend API (Render): https://e-commerce-platform-be-60ce.onrender.com
 - API Documentation (Swagger): https://e-commerce-platform-be-60ce.onrender.com/swagger
+- Frontend: https://e-commerce-platform-one-beige.vercel.app/
 
