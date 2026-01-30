@@ -1,4 +1,3 @@
-
 using e_commerce_platform_BE.DataContext;
 using Microsoft.EntityFrameworkCore;
 
@@ -10,30 +9,36 @@ namespace e_commerce_platform_BE
         {
             var builder = WebApplication.CreateBuilder(args);
 
-            // Add services to the container.
+            // 🔥 BẮT BUỘC CHO RENDER (PORT)
+            var port = Environment.GetEnvironmentVariable("PORT") ?? "10000";
+            builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
 
+            // Add services to the container
             builder.Services.AddControllers();
-            // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
 
             builder.Services.AddDbContext<ProductDbContext>(options =>
             {
-                var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") 
+                var connectionString =
+                    builder.Configuration.GetConnectionString("DefaultConnection")
                     ?? Environment.GetEnvironmentVariable("DATABASE_URL");
-                
-                // Log for debugging (remove in production)
+
                 Console.WriteLine($"Connection String Length: {connectionString?.Length ?? 0}");
-                Console.WriteLine($"Connection String Ends With: {connectionString?.Substring(Math.Max(0, connectionString.Length - 20))}");
-                
+
                 options.UseNpgsql(connectionString);
             });
 
             // Register repositories and services
-            builder.Services.AddScoped<e_commerce_platform_BE.Repository.Impl.IProductRepository, e_commerce_platform_BE.Repository.ProductRepository>();
-            builder.Services.AddScoped<e_commerce_platform_BE.Services.Impl.IProductService, e_commerce_platform_BE.Services.ProductService>();
+            builder.Services.AddScoped<
+                e_commerce_platform_BE.Repository.Impl.IProductRepository,
+                e_commerce_platform_BE.Repository.ProductRepository>();
 
-            // Add CORS for frontend
+            builder.Services.AddScoped<
+                e_commerce_platform_BE.Services.Impl.IProductService,
+                e_commerce_platform_BE.Services.ProductService>();
+
+            // CORS
             builder.Services.AddCors(options =>
             {
                 options.AddPolicy("AllowFrontend", policy =>
@@ -46,24 +51,19 @@ namespace e_commerce_platform_BE
 
             var app = builder.Build();
 
-            // Auto-apply migrations on startup (for production deployment)
+            // Auto migrate database
             using (var scope = app.Services.CreateScope())
             {
                 var db = scope.ServiceProvider.GetRequiredService<ProductDbContext>();
                 db.Database.Migrate();
             }
 
-            // Configure the HTTP request pipeline.
-            if (app.Environment.IsDevelopment())
-            {
-                app.UseSwagger();
-                app.UseSwaggerUI();
-            }
+            // 🔥 LUÔN BẬT SWAGGER (DEV + PROD)
+            app.UseSwagger();
+            app.UseSwaggerUI();
 
             app.UseCors("AllowFrontend");
-
             app.UseAuthorization();
-
             app.UseStaticFiles();
             app.MapControllers();
 
