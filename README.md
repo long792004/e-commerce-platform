@@ -78,3 +78,7 @@ Frontend runs at: `http://localhost:3000`
 | PUT | `/api/products/{id}` | Update product |
 | DELETE | `/api/products/{id}` | Delete product |
 
+
+- Backend API (Render): https://e-commerce-platform-be-60ce.onrender.com
+- API Documentation (Swagger): https://e-commerce-platform-be-60ce.onrender.com/swagger
+
