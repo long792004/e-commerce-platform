@@ -19,15 +19,15 @@ namespace e_commerce_platform_BE
             builder.Services.AddSwaggerGen();
 
             builder.Services.AddDbContext<ProductDbContext>(options =>
-            {
-                var connectionString =
-                    builder.Configuration.GetConnectionString("DefaultConnection")
-                    ?? Environment.GetEnvironmentVariable("DATABASE_URL");
+{
+    var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
-                Console.WriteLine($"Connection String Length: {connectionString?.Length ?? 0}");
+    if (string.IsNullOrEmpty(connectionString))
+        throw new Exception("❌ ConnectionStrings__DefaultConnection is missing");
 
-                options.UseNpgsql(connectionString);
-            });
+    options.UseNpgsql(connectionString);
+});
+
 
             // Register repositories and services
             builder.Services.AddScoped<
