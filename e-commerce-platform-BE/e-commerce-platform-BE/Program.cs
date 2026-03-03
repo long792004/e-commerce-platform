@@ -46,9 +46,30 @@ namespace e_commerce_platform_BE
             // Database
             builder.Services.AddDbContext<ProductDbContext>(options =>
             {
-                var connectionString = Environment.GetEnvironmentVariable("DATABASE_URL")
-                    ?? builder.Configuration.GetConnectionString("DefaultConnection");
-                options.UseNpgsql(connectionString);
+               var databaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
+
+if (!string.IsNullOrEmpty(databaseUrl))
+{
+    var uri = new Uri(databaseUrl);
+    var userInfo = uri.UserInfo.Split(':');
+
+    var builderConnection = new Npgsql.NpgsqlConnectionStringBuilder
+    {
+        Host = uri.Host,
+        Port = uri.Port,
+        Username = userInfo[0],
+        Password = userInfo[1],
+        Database = uri.AbsolutePath.Trim('/'),
+        SslMode = Npgsql.SslMode.Require,
+        TrustServerCertificate = true
+    };
+
+    options.UseNpgsql(builderConnection.ConnectionString);
+}
+else
+{
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"));
+}
             });
 
             // JWT Authentication
