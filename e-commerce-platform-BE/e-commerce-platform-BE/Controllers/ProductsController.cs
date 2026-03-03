@@ -1,5 +1,6 @@
 ﻿using e_commerce_platform_BE.DTOs;
 using e_commerce_platform_BE.Services.Impl;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
@@ -23,6 +24,7 @@ namespace e_commerce_platform_BE.Controllers
             return result is null ? NotFound() : Ok(result);
         }
 
+        [Authorize]
         [HttpPost]
         [Consumes("multipart/form-data")]
         public async Task<IActionResult> Create([FromForm] ProductCreateRequest req, CancellationToken ct)
@@ -31,6 +33,7 @@ namespace e_commerce_platform_BE.Controllers
             return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
         }
 
+        [Authorize]
         [HttpPut("{id}")]
         [Consumes("multipart/form-data")]
         public async Task<IActionResult> Update(int id, [FromForm] ProductUpdateRequest req, CancellationToken ct)
@@ -39,6 +42,7 @@ namespace e_commerce_platform_BE.Controllers
             return updated is null ? NotFound() : Ok(updated);
         }
 
+        [Authorize]
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id, CancellationToken ct)
             => (await _service.DeleteAsync(id, ct)) ? NoContent() : NotFound();

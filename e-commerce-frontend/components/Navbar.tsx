@@ -1,130 +1,196 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { useAuth } from '@/lib/AuthContext';
+import { useRouter, usePathname } from 'next/navigation';
+import { ShoppingCart, Package, PlusCircle, LogOut, User, Menu } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function Navbar() {
+  const { user, isLoggedIn, logout } = useAuth();
+  const router = useRouter();
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const isActive = (path: string) => pathname === path;
-  const isProductsActive = pathname.includes('/products');
+  const handleLogout = () => {
+    logout();
+    router.push('/');
+    setMobileMenuOpen(false);
+  };
 
   const navLinks = [
-    { href: '/', label: '🏪 Store', icon: '🏪' },
-    { href: '/products/create', label: '➕ Add Product', icon: '➕' },
+    { name: 'Products', href: '/' }
   ];
 
-  return (
-    <nav className="bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 text-white shadow-2xl sticky top-0 z-50 border-b border-blue-500/20 backdrop-blur-lg">
-      <div className="container mx-auto px-6 py-4">
-        <div className="flex justify-between items-center">
-          {/* Logo Section */}
-          <Link
-            href="/"
-            className="flex items-center gap-3 group cursor-pointer"
-          >
-            <div className="w-10 h-10 bg-gradient-to-br from-blue-400 via-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-2xl transition-all duration-300 group-hover:scale-110">
-              <span className="text-white font-black text-lg">E</span>
-            </div>
-            <div className="flex flex-col">
-              <span className="text-2xl font-black bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent group-hover:from-blue-300 group-hover:to-purple-400 transition-all duration-300">
-                Commerce
-              </span>
-              <span className="text-xs text-blue-300 font-bold tracking-widest">MARKETPLACE</span>
-            </div>
-          </Link>
+  if (isLoggedIn) {
+    navLinks.push(
+      { name: 'Add Product', href: '/products/create' },
+      { name: 'Orders', href: '/orders' }
+    );
+  }
 
-          {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-2 lg:space-x-4">
-            {/* Navigation Links */}
-            <div className="flex items-center gap-2 bg-white/5 backdrop-blur-lg border border-white/10 rounded-2xl p-1">
+  return (
+    <header className="sticky top-0 z-50 w-full border-b border-white/10 glass">
+      <div className="container mx-auto px-4 h-16 flex items-center justify-between">
+        <Link href="/" className="flex items-center gap-2 group">
+          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary to-purple-600 flex items-center justify-center text-white font-bold shadow-lg shadow-primary/20 group-hover:scale-105 transition-transform">
+            E
+          </div>
+          <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/70">
+            Store
+          </span>
+        </Link>
+
+        {/* Desktop Nav */}
+        <nav className="hidden md:flex items-center gap-6">
+          {navLinks.map((link) => {
+            const isActive = pathname === link.href || (link.href !== '/' && pathname.startsWith(link.href));
+            return (
+              <Link
+                key={link.name}
+                href={link.href}
+                className={cn(
+                  "relative text-sm font-medium transition-colors hover:text-primary",
+                  isActive ? "text-primary" : "text-muted-foreground"
+                )}
+              >
+                {link.name}
+                {isActive && (
+                  <motion.div
+                    layoutId="navbar-indicator"
+                    className="absolute -bottom-1 left-0 right-0 h-0.5 bg-primary rounded-full"
+                    initial={false}
+                    transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                  />
+                )}
+              </Link>
+            );
+          })}
+
+          {isLoggedIn && (
+            <Link
+              href="/cart"
+              className={cn(
+                "relative flex items-center gap-2 text-sm font-medium transition-colors hover:text-primary",
+                pathname === '/cart' ? "text-primary" : "text-muted-foreground"
+              )}
+            >
+              <ShoppingCart className="w-4 h-4" />
+              <span>Cart</span>
+            </Link>
+          )}
+
+          <div className="flex items-center gap-4 ml-4 pl-4 border-l border-border">
+            {isLoggedIn ? (
+              <div className="flex items-center gap-4">
+                <span className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-full bg-secondary text-secondary-foreground flex flex-col items-center justify-center text-xs font-bold ring-2 ring-background">
+                    {user?.fullName?.charAt(0).toUpperCase() || 'U'}
+                  </div>
+                </span>
+                <button
+                  onClick={handleLogout}
+                  className="text-sm font-medium text-destructive hover:text-destructive/80 transition-colors flex items-center gap-1.5"
+                >
+                  <LogOut className="w-4 h-4" />
+                  Logout
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-3">
+                <Link
+                  href="/login"
+                  className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  Login
+                </Link>
+                <Link
+                  href="/register"
+                  className="text-sm font-medium bg-primary text-primary-foreground px-4 py-2 rounded-full hover:shadow-lg hover:shadow-primary/25 hover:-translate-y-0.5 transition-all"
+                >
+                  Get Started
+                </Link>
+              </div>
+            )}
+          </div>
+        </nav>
+
+        {/* Mobile Menu Toggle */}
+        <button
+          className="md:hidden p-2 text-foreground/80 hover:text-foreground"
+          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+        >
+          <Menu className="w-6 h-6" />
+        </button>
+      </div>
+
+      {/* Mobile Nav */}
+      <AnimatePresence>
+        {mobileMenuOpen && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="md:hidden overflow-hidden bg-background/95 backdrop-blur-xl border-b border-border"
+          >
+            <div className="px-4 py-6 flex flex-col gap-4">
               {navLinks.map((link) => (
                 <Link
-                  key={link.href}
+                  key={link.name}
                   href={link.href}
-                  className={`px-5 py-2.5 rounded-xl font-bold transition-all duration-300 text-sm lg:text-base flex items-center gap-2 whitespace-nowrap ${
-                    isActive(link.href) || (link.href === '/' && isProductsActive)
-                      ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg shadow-blue-500/50 scale-105'
-                      : 'text-gray-300 hover:text-white hover:bg-white/10'
-                  }`}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="text-lg font-medium text-foreground hover:text-primary transition-colors"
                 >
-                  <span>{link.icon}</span>
-                  <span>{link.label.split(' ')[1]}</span>
+                  {link.name}
                 </Link>
               ))}
+              {isLoggedIn && (
+                <Link
+                  href="/cart"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="text-lg font-medium text-foreground hover:text-primary transition-colors flex items-center gap-2"
+                >
+                  <ShoppingCart className="w-5 h-5" /> Cart
+                </Link>
+              )}
+              <div className="h-px bg-border my-2" />
+              {isLoggedIn ? (
+                <>
+                  <div className="flex items-center gap-3 text-muted-foreground">
+                    <User className="w-5 h-5" />
+                    <span>{user?.fullName}</span>
+                  </div>
+                  <button
+                    onClick={handleLogout}
+                    className="text-lg font-medium text-destructive flex items-center gap-2 text-left"
+                  >
+                    <LogOut className="w-5 h-5" /> Logout
+                  </button>
+                </>
+              ) : (
+                <div className="flex flex-col gap-3">
+                  <Link
+                    href="/login"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="w-full py-3 text-center rounded-xl bg-secondary text-secondary-foreground font-medium"
+                  >
+                    Login
+                  </Link>
+                  <Link
+                    href="/register"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="w-full py-3 text-center rounded-xl bg-primary text-primary-foreground font-medium shadow-lg shadow-primary/20"
+                  >
+                    Register
+                  </Link>
+                </div>
+              )}
             </div>
-
-            {/* Secondary Actions */}
-            <div className="flex items-center gap-3 ml-4 pl-4 border-l border-white/10">
-              <Link
-                href="/products/create"
-                className="group relative overflow-hidden bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-2.5 rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all duration-300 font-black shadow-lg hover:shadow-2xl hover:shadow-blue-500/50 flex items-center gap-2 text-sm lg:text-base"
-              >
-                <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                <span className="relative">➕ New</span>
-              </Link>
-            </div>
-          </div>
-
-          {/* Mobile Menu Button */}
-          <button
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden relative z-50 flex flex-col gap-1.5 p-2 rounded-lg hover:bg-white/10 transition-all duration-300"
-          >
-            <span className={`w-6 h-0.5 bg-white rounded-full transition-all duration-300 ${mobileMenuOpen ? 'rotate-45 translate-y-2' : ''}`}></span>
-            <span className={`w-6 h-0.5 bg-white rounded-full transition-all duration-300 ${mobileMenuOpen ? 'opacity-0' : ''}`}></span>
-            <span className={`w-6 h-0.5 bg-white rounded-full transition-all duration-300 ${mobileMenuOpen ? '-rotate-45 -translate-y-2' : ''}`}></span>
-          </button>
-        </div>
-
-        {/* Mobile Menu */}
-        {mobileMenuOpen && (
-          <div className="md:hidden mt-6 pb-6 space-y-3 animate-fadeInUp">
-            {navLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                onClick={() => setMobileMenuOpen(false)}
-                className={`block px-5 py-3 rounded-xl font-bold transition-all duration-300 flex items-center gap-3 ${
-                  isActive(link.href)
-                    ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg'
-                    : 'text-gray-300 hover:text-white hover:bg-white/10'
-                }`}
-              >
-                <span>{link.icon}</span>
-                <span>{link.label}</span>
-              </Link>
-            ))}
-            <div className="pt-3 border-t border-white/10">
-              <Link
-                href="/products/create"
-                onClick={() => setMobileMenuOpen(false)}
-                className="block w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white px-5 py-3 rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all duration-300 font-black shadow-lg text-center"
-              >
-                ➕ Create New Product
-              </Link>
-            </div>
-          </div>
+          </motion.div>
         )}
-      </div>
-
-      {/* Navigation Info Bar */}
-      <div className="hidden md:block bg-gradient-to-r from-blue-600/20 to-purple-600/20 border-t border-blue-500/30 backdrop-blur-lg">
-        <div className="container mx-auto px-6 py-2.5">
-          <div className="flex items-center gap-6 text-xs lg:text-sm text-blue-200 font-semibold">
-            <div className="flex items-center gap-2">
-              <span className="text-blue-400">📍</span>
-              <span>Professional E-Commerce Platform</span>
-            </div>
-            <div className="hidden lg:flex items-center gap-2">
-              <span className="text-purple-400">✨</span>
-              <span>Manage products with ease</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </nav>
+      </AnimatePresence>
+    </header>
   );
 }

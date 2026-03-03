@@ -1,124 +1,130 @@
+'use client';
+
+import { useState } from 'react';
 import Link from 'next/link';
-import { Product } from '@/lib/api';
+import { useRouter } from 'next/navigation';
+import { Product, cartApi } from '@/lib/api';
+import { useAuth } from '@/lib/AuthContext';
+import { ShoppingCart, Check } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface ProductCardProps {
   product: Product;
+  index?: number;
 }
 
-export default function ProductCard({ product }: ProductCardProps) {
+export default function ProductCard({ product, index = 0 }: ProductCardProps) {
+  const { isLoggedIn } = useAuth();
+  const router = useRouter();
+  const [adding, setAdding] = useState(false);
+  const [added, setAdded] = useState(false);
+
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5057';
-  
-  const imageUrl = product.imageUrl 
+
+  const imageUrl = product.imageUrl
     ? (product.imageUrl.startsWith('http') ? product.imageUrl : `${API_URL}${product.imageUrl}`)
     : '/placeholder-product.svg';
 
+  const handleAddToCart = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!isLoggedIn) {
+      router.push('/login');
+      return;
+    }
+    setAdding(true);
+    try {
+      await cartApi.addToCart(product.id, 1);
+      setAdded(true);
+      setTimeout(() => setAdded(false), 2000);
+    } catch (err) {
+      console.error('Error adding to cart:', err);
+    } finally {
+      setAdding(false);
+    }
+  };
+
   return (
-    <div className="h-full">
-      <div className="group relative bg-gradient-to-br from-white via-blue-50 to-cyan-50 rounded-3xl shadow-lg hover:shadow-2xl transition-all duration-500 overflow-hidden h-full flex flex-col border-2 border-white/50 hover:border-blue-300 hover:-translate-y-4">
-        {/* Premium badge */}
-        <div className="absolute top-4 right-4 z-30 bg-gradient-to-r from-blue-500 to-purple-600 text-white px-3 py-1.5 rounded-full text-xs font-black uppercase tracking-wider shadow-lg group-hover:scale-110 transition-transform duration-300">
-          ⭐ Featured
-        </div>
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, delay: index * 0.05, ease: "easeOut" }}
+      className="group"
+    >
+      <Link href={`/products/${product.id}`} className="block h-full">
+        <div className="relative bg-card rounded-2xl border border-border/50 hover:border-primary/50 shadow-sm hover:shadow-xl hover:shadow-primary/10 transition-all duration-300 overflow-hidden cursor-pointer h-full flex flex-col group-hover:-translate-y-1">
 
-        {/* Gradient overlay on hover */}
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-500/0 via-purple-500/0 to-blue-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none z-10"></div>
-        
-        {/* Image Container */}
-        <div className="relative h-72 bg-gradient-to-br from-slate-100 via-blue-100 to-slate-100 flex items-center justify-center p-6 overflow-hidden">
-          {/* Animated shine effect */}
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 z-20"></div>
-          
-          <img
-            src={imageUrl}
-            alt={product.name}
-            className="max-w-full max-h-full object-contain group-hover:scale-110 transition-transform duration-500 relative z-10 drop-shadow-lg"
-            onError={(e) => {
-              const target = e.target as HTMLImageElement;
-              target.src = '/placeholder-product.svg';
-            }}
-          />
-        </div>
-        
-        {/* Content Container */}
-        <div className="p-6 flex-1 flex flex-col relative z-20">
-          {/* Status Badge */}
-          <div className="inline-flex items-center gap-2 mb-4">
-            <span className="w-2.5 h-2.5 bg-gradient-to-r from-green-400 to-emerald-500 rounded-full animate-pulse"></span>
-            <span className="text-xs font-black text-green-600 uppercase tracking-wider">In Stock</span>
+          <div className="relative h-64 bg-secondary/50 overflow-hidden flex items-center justify-center p-6">
+            <div className="absolute inset-0 bg-gradient-to-t from-black/5 to-transparent z-10" />
+            <motion.img
+              whileHover={{ scale: 1.05 }}
+              transition={{ duration: 0.4 }}
+              src={imageUrl}
+              alt={product.name}
+              className="max-w-full max-h-full object-contain relative z-20 drop-shadow-xl"
+              onError={(e) => {
+                const target = e.target as HTMLImageElement;
+                target.src = '/placeholder-product.svg';
+              }}
+            />
           </div>
-          
-          {/* Product Name */}
-          <h3 className="text-xl font-black text-gray-900 mb-3 line-clamp-2 group-hover:text-transparent group-hover:bg-gradient-to-r group-hover:from-blue-600 group-hover:via-purple-600 group-hover:to-blue-600 group-hover:bg-clip-text transition-all duration-300 leading-tight">
-            {product.name}
-          </h3>
-          
-          {/* Rating */}
-          <div className="flex items-center gap-2 mb-4">
-            <div className="flex text-yellow-400">★★★★★</div>
-            <span className="text-xs text-gray-500 font-bold">(128 reviews)</span>
-          </div>
-          
-          {/* Description */}
-          <p className="text-gray-600 text-sm mb-6 line-clamp-2 flex-1 leading-relaxed font-semibold group-hover:text-gray-700 transition-colors duration-300">
-            {product.description}
-          </p>
-          
-          {/* Footer with Price and Actions */}
-          <div className="space-y-4 mt-auto pt-6 border-t-2 border-gray-100">
-            {/* Price Section */}
-            <div className="flex items-center justify-between">
-              <div className="flex flex-col">
-                <span className="text-xs text-gray-500 font-bold uppercase tracking-wider">Price</span>
-                <p className="text-3xl font-black bg-gradient-to-r from-blue-600 via-cyan-500 to-blue-600 bg-clip-text text-transparent">
-                  ${product.price.toFixed(2)}
-                </p>
-              </div>
-              <div className="text-right flex flex-col items-end">
-                <span className="text-xs text-gray-500 font-bold uppercase tracking-wider">Original</span>
-                <p className="text-sm font-bold text-gray-400 line-through">
-                  ${(product.price * 1.15).toFixed(2)}
-                </p>
-              </div>
-            </div>
 
-            {/* Action Buttons */}
-            <div className="grid grid-cols-2 gap-3">
-              {/* View Details Button */}
-              <Link href={`/products/${product.id}`}>
-                <button className="group/btn relative w-full overflow-hidden bg-gradient-to-r from-blue-600 to-blue-700 text-white px-4 py-3 rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all duration-300 font-black shadow-lg hover:shadow-xl hover:scale-105 text-sm flex items-center justify-center gap-1">
-                  <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover/btn:opacity-100 transition-opacity duration-300"></div>
-                  <span className="relative">👁️</span>
-                  <span className="relative hidden sm:inline">View</span>
-                </button>
-              </Link>
+          <div className="p-5 flex-1 flex flex-col relative z-20 bg-card">
+            <h3 className="text-lg font-bold text-card-foreground mb-1 line-clamp-1 group-hover:text-primary transition-colors">
+              {product.name}
+            </h3>
+            <p className="text-muted-foreground text-sm mb-4 line-clamp-2 flex-1">
+              {product.description}
+            </p>
 
-              {/* Edit Button */}
-              <Link href={`/products/edit/${product.id}`}>
-                <button className="group/btn relative w-full overflow-hidden bg-gradient-to-r from-purple-600 to-purple-700 text-white px-4 py-3 rounded-xl hover:from-purple-700 hover:to-purple-800 transition-all duration-300 font-black shadow-lg hover:shadow-xl hover:scale-105 text-sm flex items-center justify-center gap-1">
-                  <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover/btn:opacity-100 transition-opacity duration-300"></div>
-                  <span className="relative">✏️</span>
-                  <span className="relative hidden sm:inline">Edit</span>
-                </button>
-              </Link>
-            </div>
+            <div className="flex items-center justify-between mt-auto pt-4 border-t border-border/50">
+              <p className="text-2xl font-extrabold text-foreground tracking-tight">
+                ${product.price.toFixed(2)}
+              </p>
 
-            {/* Additional Info */}
-            <div className="grid grid-cols-2 gap-3 text-xs text-center pt-3 border-t border-gray-100">
-              <div className="py-2">
-                <span className="text-gray-500 font-bold">Product ID</span>
-                <p className="text-gray-700 font-black">#{product.id}</p>
-              </div>
-              <div className="py-2">
-                <span className="text-gray-500 font-bold">Availability</span>
-                <p className="text-green-600 font-black">Ready</p>
-              </div>
+              <button
+                onClick={handleAddToCart}
+                disabled={adding || added}
+                className={`relative overflow-hidden w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 ${added
+                  ? 'bg-green-500 text-white'
+                  : adding
+                    ? 'bg-secondary text-muted-foreground'
+                    : 'bg-primary/10 text-primary hover:bg-primary hover:text-white hover:scale-110 hover:shadow-lg hover:shadow-primary/30'
+                  } disabled:opacity-80`}
+              >
+                <AnimatePresence mode="wait">
+                  {added ? (
+                    <motion.div
+                      key="check"
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      exit={{ scale: 0 }}
+                    >
+                      <Check className="w-5 h-5" />
+                    </motion.div>
+                  ) : adding ? (
+                    <motion.div
+                      key="loader"
+                      animate={{ rotate: 360 }}
+                      transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+                      className="w-4 h-4 border-2 border-current border-t-transparent rounded-full"
+                    />
+                  ) : (
+                    <motion.div
+                      key="cart"
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      exit={{ scale: 0 }}
+                    >
+                      <ShoppingCart className="w-5 h-5" />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </button>
             </div>
           </div>
         </div>
-
-        {/* Hover indicator */}
-        <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 via-purple-500 to-blue-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-      </div>
-    </div>
+      </Link>
+    </motion.div>
   );
 }

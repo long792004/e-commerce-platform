@@ -2,15 +2,22 @@
 
 import { useEffect, useState, use } from 'react';
 import { useRouter } from 'next/navigation';
-import { productApi, Product } from '@/lib/api';
+import { productApi, cartApi, Product } from '@/lib/api';
+import { useAuth } from '@/lib/AuthContext';
+import { motion, AnimatePresence } from 'framer-motion';
+import { ShoppingCart, ArrowLeft, Edit, Trash2, Check, ShieldCheck, Truck, RotateCcw } from 'lucide-react';
+import Link from 'next/link';
 
 export default function ProductDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
+  const { isLoggedIn } = useAuth();
   const { id } = use(params);
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [addingToCart, setAddingToCart] = useState(false);
+  const [added, setAdded] = useState(false);
 
   useEffect(() => {
     loadProduct();
@@ -30,7 +37,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
   };
 
   const handleDelete = async () => {
-    if (!confirm('Are you sure you want to delete this product? This action cannot be undone.')) return;
+    if (!confirm('Are you sure you want to delete this product?')) return;
 
     try {
       setDeleting(true);
@@ -44,238 +51,180 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
     }
   };
 
+  const handleAddToCart = async () => {
+    if (!isLoggedIn) {
+      router.push('/login');
+      return;
+    }
+    setAddingToCart(true);
+    try {
+      await cartApi.addToCart(Number(id), 1);
+      setAdded(true);
+      setTimeout(() => setAdded(false), 2000);
+    } catch (err) {
+      alert('Failed to add to cart');
+    } finally {
+      setAddingToCart(false);
+    }
+  };
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 flex justify-center items-center">
-        <div className="text-center">
-          <div className="relative w-24 h-24 mb-6">
-            <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full animate-spin"></div>
-            <div className="absolute inset-2 bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 rounded-full"></div>
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="w-3 h-3 bg-gradient-to-r from-blue-400 to-purple-400 rounded-full animate-pulse"></div>
-            </div>
-          </div>
-          <p className="text-white font-black text-lg">Loading product details...</p>
-        </div>
+      <div className="flex justify-center items-center min-h-[70vh]">
+        <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-primary"></div>
       </div>
     );
   }
 
   if (error || !product) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-red-900 to-slate-900 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-red-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20"></div>
-        <div className="absolute bottom-0 left-0 w-96 h-96 bg-pink-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20"></div>
-
-        <div className="relative z-10 flex items-center justify-center min-h-screen px-6">
-          <div className="text-center animate-fadeInUp">
-            <div className="inline-block mb-6 p-6 bg-red-500/20 rounded-full border-2 border-red-400">
-              <span className="text-5xl">⚠️</span>
-            </div>
-            <h1 className="text-5xl font-black text-white mb-4">Product Not Found</h1>
-            <p className="text-red-200 text-lg mb-8">{error || 'The product you are looking for does not exist.'}</p>
-            <button
-              onClick={() => router.push('/')}
-              className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-8 py-4 rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all duration-300 font-black text-lg shadow-lg hover:shadow-2xl hover:scale-105"
-            >
-              ← Back to Products
-            </button>
-          </div>
+      <div className="container mx-auto px-4 py-20 text-center">
+        <div className="max-w-md mx-auto bg-destructive/10 border border-destructive/20 text-destructive px-6 py-8 rounded-2xl">
+          <h2 className="text-xl font-bold mb-2">Oops!</h2>
+          <p>{error || 'Product not found'}</p>
+          <Link href="/" className="mt-6 inline-flex items-center gap-2 text-primary hover:underline font-medium">
+            <ArrowLeft className="w-4 h-4" /> Back to Safety
+          </Link>
         </div>
       </div>
     );
   }
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5057';
-  const imageUrl = product.imageUrl 
+  const imageUrl = product.imageUrl
     ? (product.imageUrl.startsWith('http') ? product.imageUrl : `${API_URL}${product.imageUrl}`)
     : '/placeholder-product.svg';
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 relative overflow-hidden">
-      {/* Animated background blobs */}
-      <div className="absolute top-0 right-0 w-96 h-96 bg-blue-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
-      <div className="absolute bottom-0 left-0 w-96 h-96 bg-cyan-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
-      <div className="absolute top-1/2 left-1/2 w-96 h-96 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-4000"></div>
+    <div className="container mx-auto px-4 py-12 md:py-20 lg:px-8 max-w-7xl">
+      <Link
+        href="/"
+        className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground mb-8 transition-colors font-medium group"
+      >
+        <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
+        Back to Products
+      </Link>
 
-      {/* Breadcrumb Navigation */}
-      <div className="relative z-10 pt-8 px-6">
-        <div className="container mx-auto max-w-6xl">
-          <button
-            onClick={() => router.push('/')}
-            className="flex items-center gap-2 text-blue-300 hover:text-blue-100 transition-colors duration-300 font-semibold text-sm mb-8 group"
-          >
-            <span className="group-hover:-translate-x-1 transition-transform duration-300">←</span>
-            Back to Store
-          </button>
-        </div>
-      </div>
+      <div className="bg-card border border-border/50 rounded-3xl shadow-xl overflow-hidden relative">
+        <div className="lg:flex">
 
-      {/* Header Section */}
-      <div className="relative z-10 py-12 px-6">
-        <div className="container mx-auto max-w-6xl">
-          <div className="animate-fadeInUp">
-            <div className="inline-block bg-gradient-to-r from-blue-500 to-purple-500 text-white px-4 py-2 rounded-full text-sm font-bold mb-6 shadow-lg">
-              ✨ Product Details
-            </div>
-            <h1 className="text-5xl lg:text-6xl font-black text-white mb-4 leading-tight">
-              {product.name}
-            </h1>
-            <p className="text-xl text-blue-100 font-semibold">
-              Discover all the details and features of this amazing product.
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Content */}
-      <div className="relative z-10 pb-20 px-6">
-        <div className="container mx-auto max-w-6xl">
-          <div className="grid md:grid-cols-2 gap-12 mb-12 animate-fadeInUp">
-            {/* Product Image Section */}
-            <div className="group">
-              <div className="bg-gradient-to-br from-white via-blue-50 to-cyan-50 rounded-3xl shadow-2xl p-8 border-2 border-white/30 backdrop-blur-sm overflow-hidden relative h-full">
-                <div className="absolute inset-0 bg-gradient-to-br from-blue-100/50 to-cyan-100/50 opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-3xl"></div>
-                
-                <div className="relative z-10 flex items-center justify-center min-h-96 bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-8 overflow-hidden">
-                  <img
-                    src={imageUrl}
-                    alt={product.name}
-                    className="max-w-full max-h-80 object-contain drop-shadow-xl group-hover:scale-105 transition-transform duration-300"
-                    onError={(e) => {
-                      const target = e.target as HTMLImageElement;
-                      target.src = '/placeholder-product.svg';
-                    }}
-                  />
-                </div>
-
-                {/* Product Badge */}
-                <div className="relative z-10 mt-6 flex items-center justify-between">
-                  <div className="inline-block bg-gradient-to-r from-green-400 to-emerald-500 text-white px-4 py-2 rounded-full text-sm font-black">
-                    🔆 In Stock
-                  </div>
-                  <div className="text-yellow-400">★★★★★</div>
-                </div>
-              </div>
-            </div>
-
-            {/* Product Info Section */}
-            <div className="flex flex-col justify-between">
-              {/* Price and Description */}
-              <div className="bg-gradient-to-br from-white via-blue-50 to-cyan-50 rounded-3xl shadow-2xl p-8 border-2 border-white/30 backdrop-blur-sm animate-fadeInUp mb-8">
-                <div className="absolute inset-0 bg-gradient-to-br from-blue-100/50 to-cyan-100/50 opacity-0 hover:opacity-100 transition-opacity duration-500 rounded-3xl pointer-events-none"></div>
-                
-                <div className="relative z-10">
-                  {/* Price Section */}
-                  <div className="mb-8">
-                    <p className="text-gray-600 font-bold text-sm mb-2">PRICE</p>
-                    <div className="flex items-baseline gap-3">
-                      <span className="text-5xl font-black bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
-                        ${product.price.toFixed(2)}
-                      </span>
-                      <span className="text-lg text-gray-500 line-through">
-                        ${(product.price * 1.2).toFixed(2)}
-                      </span>
-                    </div>
-                    <div className="mt-2 text-sm text-green-600 font-bold">💰 Save 16% today!</div>
-                  </div>
-
-                  {/* Divider */}
-                  <div className="w-full h-px bg-gradient-to-r from-blue-300 to-cyan-300 mb-8"></div>
-
-                  {/* Description */}
-                  <div>
-                    <p className="text-gray-900 font-bold text-sm mb-3">DESCRIPTION</p>
-                    <p className="text-gray-700 leading-relaxed font-semibold">
-                      {product.description}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Product Stats */}
-              <div className="grid grid-cols-3 gap-4 mb-8">
-                <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-2xl p-4 text-center hover:bg-white/20 transition-all duration-300 hover:scale-105 animate-fadeInUp" style={{animationDelay: '0.1s'}}>
-                  <p className="text-white/60 text-xs font-bold mb-1">PRODUCT ID</p>
-                  <p className="text-white font-black text-lg">#{product.id}</p>
-                </div>
-                <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-2xl p-4 text-center hover:bg-white/20 transition-all duration-300 hover:scale-105 animate-fadeInUp" style={{animationDelay: '0.2s'}}>
-                  <p className="text-white/60 text-xs font-bold mb-1">AVAILABILITY</p>
-                  <p className="text-green-400 font-black text-lg">In Stock</p>
-                </div>
-                <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-2xl p-4 text-center hover:bg-white/20 transition-all duration-300 hover:scale-105 animate-fadeInUp" style={{animationDelay: '0.3s'}}>
-                  <p className="text-white/60 text-xs font-bold mb-1">RATING</p>
-                  <p className="text-yellow-400 font-black text-lg">★ 5.0</p>
-                </div>
-              </div>
-            </div>
+          {/* Image Section */}
+          <div className="lg:w-1/2 relative bg-secondary/30 p-8 lg:p-16 flex items-center justify-center min-h-[400px]">
+            <div className="absolute inset-0 bg-gradient-to-tr from-primary/5 to-transparent"></div>
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.5 }}
+              className="relative z-10 w-full h-full flex justify-center items-center"
+            >
+              <img
+                src={imageUrl}
+                alt={product.name}
+                className="max-w-full max-h-[500px] object-contain drop-shadow-2xl"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  target.src = '/placeholder-product.svg';
+                }}
+              />
+            </motion.div>
           </div>
 
-          {/* Action Buttons */}
-          <div className="bg-gradient-to-br from-white via-blue-50 to-cyan-50 rounded-3xl shadow-2xl p-8 border-2 border-white/30 backdrop-blur-sm mb-12 animate-fadeInUp">
-            <div className="absolute inset-0 bg-gradient-to-br from-blue-100/50 to-cyan-100/50 opacity-0 hover:opacity-100 transition-opacity duration-500 rounded-3xl pointer-events-none"></div>
-            
-            <div className="relative z-10">
-              <p className="text-gray-900 font-black text-lg mb-6">Manage this product</p>
-              <div className="grid md:grid-cols-2 gap-4">
-                <button
-                  onClick={() => router.push(`/products/edit/${product.id}`)}
-                  className="group relative overflow-hidden bg-gradient-to-r from-blue-600 to-blue-700 text-white px-8 py-5 rounded-2xl hover:from-blue-700 hover:to-blue-800 transition-all duration-300 font-black text-lg shadow-lg hover:shadow-2xl hover:scale-105"
-                >
-                  <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                  <span className="relative flex items-center justify-center gap-2">
-                    ✏️ Edit Product
-                  </span>
-                </button>
-                <button
-                  onClick={() => router.push('/')}
-                  className="group relative overflow-hidden bg-gradient-to-r from-slate-600 to-slate-700 text-white px-8 py-5 rounded-2xl hover:from-slate-700 hover:to-slate-800 transition-all duration-300 font-black text-lg shadow-lg hover:shadow-2xl hover:scale-105"
-                >
-                  <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                  <span className="relative flex items-center justify-center gap-2">
-                    🏪 View All Products
-                  </span>
-                </button>
-              </div>
-              <button
-                onClick={handleDelete}
-                disabled={deleting}
-                className="group w-full mt-4 relative overflow-hidden bg-gradient-to-r from-red-600 to-red-700 text-white px-8 py-5 rounded-2xl hover:from-red-700 hover:to-red-800 transition-all duration-300 font-black text-lg shadow-lg hover:shadow-2xl hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:scale-100"
-              >
-                <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                <span className="relative flex items-center justify-center gap-2">
-                  {deleting ? '⏳ Deleting...' : '🗑️ Delete Product'}
+          {/* Details Section */}
+          <div className="lg:w-1/2 p-8 lg:p-16 flex flex-col justify-center bg-card">
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+            >
+              <div className="mb-2">
+                <span className="inline-block px-3 py-1 bg-secondary text-secondary-foreground text-xs font-bold rounded-full uppercase tracking-wider">
+                  New Arrival
                 </span>
-              </button>
-            </div>
-          </div>
+              </div>
+              <h1 className="text-4xl md:text-5xl font-extrabold text-foreground mb-4 tracking-tight leading-tight">
+                {product.name}
+              </h1>
 
-          {/* Related Navigation */}
-          <div className="grid md:grid-cols-3 gap-6 animate-fadeInUp" style={{animationDelay: '0.2s'}}>
-            <button
-              onClick={() => router.push('/')}
-              className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-2xl p-6 hover:bg-white/20 transition-all duration-300 hover:scale-105 group"
-            >
-              <div className="text-4xl mb-3">🏠</div>
-              <h3 className="text-white font-black mb-2">Back to Home</h3>
-              <p className="text-white/60 text-sm">Return to the main store</p>
-            </button>
-            <button
-              onClick={() => router.push('/products/create')}
-              className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-2xl p-6 hover:bg-white/20 transition-all duration-300 hover:scale-105 group"
-            >
-              <div className="text-4xl mb-3">➕</div>
-              <h3 className="text-white font-black mb-2">Create Product</h3>
-              <p className="text-white/60 text-sm">Add a new product</p>
-            </button>
-            <button
-              onClick={() => router.push(`/products/edit/${product.id}`)}
-              className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-2xl p-6 hover:bg-white/20 transition-all duration-300 hover:scale-105 group"
-            >
-              <div className="text-4xl mb-3">✏️</div>
-              <h3 className="text-white font-black mb-2">Manage Product</h3>
-              <p className="text-white/60 text-sm">Edit product details</p>
-            </button>
+              <div className="flex items-center gap-4 mb-8">
+                <p className="text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-primary to-purple-600">
+                  ${product.price.toFixed(2)}
+                </p>
+                <div className="px-3 py-1 bg-green-500/10 text-green-600 rounded-lg text-sm font-bold flex items-center gap-1">
+                  <ShieldCheck className="w-4 h-4" /> In Stock
+                </div>
+              </div>
+
+              <div className="prose prose-lg dark:prose-invert mb-10 text-muted-foreground">
+                <p className="leading-relaxed">{product.description}</p>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex flex-col gap-4 mb-10">
+                <button
+                  onClick={handleAddToCart}
+                  disabled={addingToCart || added}
+                  className={`relative w-full overflow-hidden rounded-2xl py-5 font-bold text-lg transition-all duration-300 flex items-center justify-center gap-3 ${added
+                      ? 'bg-green-500 text-white shadow-lg shadow-green-500/30'
+                      : 'bg-primary text-primary-foreground hover:bg-primary/90 shadow-xl shadow-primary/20 hover:shadow-primary/40 hover:-translate-y-1'
+                    } disabled:opacity-80`}
+                >
+                  <AnimatePresence mode="wait">
+                    {added ? (
+                      <motion.div key="check" className="flex items-center gap-2">
+                        <Check className="w-6 h-6" />
+                        <span>Added to Cart!</span>
+                      </motion.div>
+                    ) : addingToCart ? (
+                      <motion.div key="loader" className="flex items-center gap-2">
+                        <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                        <span>Processing...</span>
+                      </motion.div>
+                    ) : (
+                      <motion.div key="cart" className="flex items-center gap-2">
+                        <ShoppingCart className="w-6 h-6" />
+                        <span>Add to Cart</span>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </button>
+              </div>
+
+              {/* Value Props */}
+              <div className="grid grid-cols-2 gap-4 py-6 border-t border-border/50">
+                <div className="flex items-center gap-3 text-muted-foreground">
+                  <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center text-foreground">
+                    <Truck className="w-5 h-5" />
+                  </div>
+                  <span className="text-sm font-medium">Free Shipping</span>
+                </div>
+                <div className="flex items-center gap-3 text-muted-foreground">
+                  <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center text-foreground">
+                    <RotateCcw className="w-5 h-5" />
+                  </div>
+                  <span className="text-sm font-medium">30-Day Returns</span>
+                </div>
+              </div>
+
+              {/* Admin Actions */}
+              {isLoggedIn && (
+                <div className="mt-8 pt-8 border-t border-border/50 flex gap-4">
+                  <Link
+                    href={`/products/edit/${product.id}`}
+                    className="flex-1 flex items-center justify-center gap-2 bg-secondary text-secondary-foreground py-3 rounded-xl font-semibold hover:bg-secondary/80 transition-colors"
+                  >
+                    <Edit className="w-4 h-4" /> Edit
+                  </Link>
+                  <button
+                    onClick={handleDelete}
+                    disabled={deleting}
+                    className="flex-1 flex items-center justify-center gap-2 bg-destructive/10 text-destructive py-3 rounded-xl font-semibold hover:bg-destructive/20 transition-colors disabled:opacity-50"
+                  >
+                    <Trash2 className="w-4 h-4" /> {deleting ? 'Deleting...' : 'Delete'}
+                  </button>
+                </div>
+              )}
+
+            </motion.div>
           </div>
         </div>
       </div>

@@ -1,20 +1,19 @@
-# ===== BUILD STAGE =====
+# Use the official .NET SDK image to build the app
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /app
 
-COPY *.csproj ./
-RUN dotnet restore
+# Copy csproj and restore
+COPY ["e-commerce-platform-BE.csproj", "./"]
+RUN dotnet restore "e-commerce-platform-BE.csproj"
 
-COPY . ./
-RUN dotnet publish -c Release -o out
+# Copy everything else and build
+COPY . .
+RUN dotnet publish "e-commerce-platform-BE.csproj" -c Release -o /app/publish /p:UseAppHost=false
 
-# ===== RUNTIME STAGE =====
-FROM mcr.microsoft.com/dotnet/aspnet:8.0
+# Build runtime image
+FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
 WORKDIR /app
-
-COPY --from=build /app/out ./
-
-ENV ASPNETCORE_URLS=http://0.0.0.0:10000
-EXPOSE 10000
-
+EXPOSE 8080
+ENV ASPNETCORE_HTTP_PORTS=8080
+COPY --from=build /app/publish .
 ENTRYPOINT ["dotnet", "e-commerce-platform-BE.dll"]

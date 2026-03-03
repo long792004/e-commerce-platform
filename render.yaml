@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: e-commerce-backend
+    env: docker
+    dockerfilePath: ./e-commerce-platform-BE/e-commerce-platform-BE/Dockerfile
+    dockerContext: ./e-commerce-platform-BE/e-commerce-platform-BE
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+
+      - key: Jwt__Key
+        generateValue: true
+
+      - key: Jwt__Issuer
+        value: "e-commerce-platform"
+
+      - key: Jwt__Audience
+        value: "e-commerce-frontend"
