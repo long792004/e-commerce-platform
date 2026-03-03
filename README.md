@@ -78,8 +78,3 @@ Frontend runs at: `http://localhost:3000`
 | PUT | `/api/products/{id}` | Update product |
 | DELETE | `/api/products/{id}` | Delete product |
 
-## 👤 Author
-
-- **Student ID**: QE180015  
-- **Name**: Hồ Văn Phong
-- **Class**: PRN232
