@@ -43,34 +43,42 @@ namespace e_commerce_platform_BE
                 });
             });
 
-            // Database
-            builder.Services.AddDbContext<ProductDbContext>(options =>
-            {
-               var databaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
-
-if (!string.IsNullOrEmpty(databaseUrl))
+          
+           // Database
+builder.Services.AddDbContext<ProductDbContext>(options =>
 {
-    var uri = new Uri(databaseUrl);
-    var userInfo = uri.UserInfo.Split(':');
+    var databaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
 
-    var builderConnection = new Npgsql.NpgsqlConnectionStringBuilder
+    if (!string.IsNullOrEmpty(databaseUrl))
     {
-        Host = uri.Host,
-        Port = uri.Port,
-        Username = userInfo[0],
-        Password = userInfo[1],
-        Database = uri.AbsolutePath.Trim('/'),
-        SslMode = Npgsql.SslMode.Require,
-        TrustServerCertificate = true
-    };
+        // Render / Railway format: postgres://user:pass@host:port/db
+        var uri = new Uri(databaseUrl);
 
-    options.UseNpgsql(builderConnection.ConnectionString);
-}
-else
-{
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"));
-}
-            });
+        var userInfo = uri.UserInfo.Split(':', 2);
+
+        var host = uri.Host;
+        var port = uri.Port > 0 ? uri.Port : 5432;
+        var database = uri.AbsolutePath.TrimStart('/');
+
+        var username = Uri.UnescapeDataString(userInfo[0]);
+        var password = Uri.UnescapeDataString(userInfo[1]);
+
+        var connectionString =
+            $"Host={host};" +
+            $"Port={port};" +
+            $"Database={database};" +
+            $"Username={username};" +
+            $"Password={password};" +
+            $"SSL Mode=Require;" +
+            $"Trust Server Certificate=true";
+
+        options.UseNpgsql(connectionString);
+    }
+    else
+    {
+        options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"));
+    }
+});
 
             // JWT Authentication
             var jwtKey = builder.Configuration["Jwt:Key"] ?? "YourSuperSecretKeyThatIsAtLeast32CharactersLong!";
