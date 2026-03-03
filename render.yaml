@@ -7,10 +7,12 @@ services:
     envVars:
       - key: DATABASE_URL
         sync: false
+
       - key: Jwt__Key
-        sync: false
         generateValue: true
+
       - key: Jwt__Issuer
         value: "e-commerce-platform"
+
       - key: Jwt__Audience
         value: "e-commerce-frontend"
